@@ -26,6 +26,9 @@ func main() {
 		}
 	}
 	sameFiles := make(map[sameFile][]string)
+	all_files := 0
+	all_dirs := 0
+	var all_file_size int64
 	for _, dir := range flag.Args() {
 		filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 			if f == nil {
@@ -37,8 +40,11 @@ func main() {
 				if s.size == 0 {
 					return nil
 				}
+				all_file_size += s.size
+				all_files++
 				sameFiles[s] = append(sameFiles[s], path)
 			}
+			all_dirs++
 			return nil
 		})
 	}
@@ -73,7 +79,7 @@ func main() {
 			for i, p := range paths {
 				total_dupes++
 				size_wasted = size_wasted + k.size
-				fmt.Printf("duplicate %d: %s\n", i, p)
+				fmt.Printf(" duplicate %d: %s\n", i, p)
 				if *deletePrefix != "" && strings.HasPrefix(p, *deletePrefix) {
 					toDelete = append(toDelete, p)
 				}
@@ -88,4 +94,6 @@ func main() {
 		}
 	}
 	fmt.Printf("\nTotal dupes %d.  Total bytes wasted %d\n", total_dupes, size_wasted)
+	fmt.Printf("\nTotal files %d.  Total bytes %d. Total dirs %d\n", all_files,
+		all_file_size, all_dirs)
 }
