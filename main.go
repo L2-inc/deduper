@@ -55,6 +55,9 @@ func hardID(files []string) map[string][]string {
 }
 
 func confirmDupes(k softID, files []string) {
+	if k.size == 0 || len(files) < 2 {
+		return
+	}
 	for _, paths := range hardID(files) {
 		toDelete := []string{}
 		if 2 > len(paths) {
@@ -104,27 +107,34 @@ func walker(path string, f os.FileInfo, err error) error {
 	return nil
 }
 
-func main() {
+func processArgs() {
 	deletePrefix = flag.String("delete-prefix", "", "delete dupes that start with this prefix")
 	report = flag.Bool("report", false, "print out report only.  This is on unless 'delete-prefix' flag is specified")
 	flag.Parse()
 	if *deletePrefix != "" {
 		*report = true
 	}
+}
 
-	validateDirs()
-
+func compileData() {
 	uniqueFiles = make(map[softID][]string)
 	for _, dir := range flag.Args() {
 		filepath.Walk(dir, walker)
 	}
+}
+
+func reportStats() {
+	fmt.Printf("\nTotal dupes %d.  Total bytes wasted %d\n", totalDupes, wastedSpace)
+	fmt.Printf("\nTotal files %d.  Total bytes %d. Total dirs %d\n", allFiles, totalSize, allDirs)
+}
+
+func main() {
+	processArgs()
+	validateDirs()
+
+	compileData()
 	for k, v := range uniqueFiles {
-		if k.size == 0 || len(v) < 2 {
-			continue
-		}
 		confirmDupes(k, v)
 	}
-	fmt.Printf("\nTotal dupes %d.  Total bytes wasted %d\n", totalDupes, wastedSpace)
-	fmt.Printf("\nTotal files %d.  Total bytes %d. Total dirs %d\n", allFiles,
-		totalSize, allDirs)
+	reportStats()
 }
