@@ -20,6 +20,10 @@ var totalDupes int
 var wastedSpace int64
 var deletePrefix *string
 var report *bool
+var allFiles int
+var allDirs int
+var totalSize int64
+var uniqueFiles map[softID][]string
 
 func validateDirs() {
 	for _, dir := range flag.Args() {
@@ -31,7 +35,7 @@ func validateDirs() {
 
 }
 
-func confirmDupes(k softID, files []string) {
+func hardID(files []string) map[string][]string {
 	hardID := make(map[string][]string)
 	for _, path := range files {
 		f, err := os.Open(path)
@@ -47,7 +51,11 @@ func confirmDupes(k softID, files []string) {
 		md5 := string(h.Sum(nil)[:])
 		hardID[md5] = append(hardID[md5], path)
 	}
-	for _, paths := range hardID {
+	return hardID
+}
+
+func confirmDupes(k softID, files []string) {
+	for _, paths := range hardID(files) {
 		toDelete := []string{}
 		if 2 > len(paths) {
 			continue
@@ -77,6 +85,25 @@ func confirmDupes(k softID, files []string) {
 	}
 }
 
+func walker(path string, f os.FileInfo, err error) error {
+	if f == nil {
+		fmt.Printf("Invalid path %s\n", path)
+		return nil
+	}
+	if f.IsDir() {
+		allDirs++
+		return nil
+	}
+	s := softID{f.Name(), f.Size()}
+	if s.size == 0 {
+		return nil
+	}
+	totalSize += s.size
+	allFiles++
+	uniqueFiles[s] = append(uniqueFiles[s], path)
+	return nil
+}
+
 func main() {
 	deletePrefix = flag.String("delete-prefix", "", "delete dupes that start with this prefix")
 	report = flag.Bool("report", false, "print out report only.  This is on unless 'delete-prefix' flag is specified")
@@ -87,28 +114,9 @@ func main() {
 
 	validateDirs()
 
-	var allFiles int
-	var allDirs int
-	var totalSize int64
-	uniqueFiles := make(map[softID][]string)
+	uniqueFiles = make(map[softID][]string)
 	for _, dir := range flag.Args() {
-		filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
-			if f == nil {
-				fmt.Printf("Invalid path %s\n", path)
-				return nil
-			}
-			if !f.IsDir() {
-				s := softID{f.Name(), f.Size()}
-				if s.size == 0 {
-					return nil
-				}
-				totalSize += s.size
-				allFiles++
-				uniqueFiles[s] = append(uniqueFiles[s], path)
-			}
-			allDirs++
-			return nil
-		})
+		filepath.Walk(dir, walker)
 	}
 	for k, v := range uniqueFiles {
 		if k.size == 0 || len(v) < 2 {
