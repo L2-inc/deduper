@@ -18,6 +18,10 @@ type sameFile struct {
 
 func main() {
 	deletePrefix := flag.String("delete-prefix", "", "delete dupes that start with this prefix")
+	report := flag.Bool("report", false, "print out report only.  This is on unless 'delete-prefix' flag is specified")
+	if *deletePrefix != "" {
+		*report = true
+	}
 	flag.Parse()
 	for _, dir := range flag.Args() {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -26,9 +30,11 @@ func main() {
 		}
 	}
 	sameFiles := make(map[sameFile][]string)
-	all_files := 0
-	all_dirs := 0
+	var all_files int
+	var all_dirs int
 	var all_file_size int64
+	var total_dupes int
+	var size_wasted int64
 	for _, dir := range flag.Args() {
 		filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 			if f == nil {
@@ -48,8 +54,6 @@ func main() {
 			return nil
 		})
 	}
-	total_dupes := 0
-	var size_wasted int64
 	for k, v := range sameFiles {
 		if k.size == 0 || len(v) < 2 {
 			continue
@@ -79,7 +83,9 @@ func main() {
 			for i, p := range paths {
 				total_dupes++
 				size_wasted = size_wasted + k.size
-				fmt.Printf(" duplicate %d: %s\n", i, p)
+				if *report {
+					fmt.Printf(" duplicate %d: %s\n", i, p)
+				}
 				if *deletePrefix != "" && strings.HasPrefix(p, *deletePrefix) {
 					toDelete = append(toDelete, p)
 				}
