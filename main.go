@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,15 +38,17 @@ func hardID(files []string) map[string][]string {
 	hardID := make(map[string][]string)
 	for _, path := range files {
 		f, err := os.Open(path)
+		defer f.Close()
 		if err != nil {
-			log.Fatal(err)
+			fmt.Printf("cannot open %v. %v\n", path, err)
+			continue
 		}
 		h := md5.New()
 
 		if _, err := io.Copy(h, f); err != nil {
-			log.Fatal(err)
+			fmt.Printf("cannot compute md5 for %v. %v", path, err)
+			continue
 		}
-		f.Close()
 		md5 := string(h.Sum(nil)[:])
 		hardID[md5] = append(hardID[md5], path)
 	}
