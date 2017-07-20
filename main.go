@@ -31,12 +31,11 @@ func validateDirs() {
 			os.Exit(2)
 		}
 	}
-
 }
 
-func hardID(files []string) map[string][]string {
+func hardID(paths []string) map[string][]string {
 	hardID := make(map[string][]string)
-	for _, path := range files {
+	for _, path := range paths {
 		f, err := os.Open(path)
 		defer f.Close()
 		if err != nil {
