@@ -48,8 +48,8 @@ func hardID(paths []string) map[string][]string {
 			fmt.Printf("cannot compute md5 for %v. %v", path, err)
 			continue
 		}
-		md5 := string(h.Sum(nil)[:])
-		hardID[md5] = append(hardID[md5], path)
+		sum := fmt.Sprintf("%x", h.Sum(nil))
+		hardID[sum] = append(hardID[sum], path)
 	}
 	return hardID
 }

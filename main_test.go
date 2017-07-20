@@ -16,9 +16,12 @@ func TestMain(t *testing.T) {
 	if len(a) != 1 {
 		t.Error("Expected two files to have the same fingerprint")
 	}
-	for _, pathList := range a {
+	for m, pathList := range a {
 		if len(pathList) != 2 {
 			t.Error("Expected two duplicate files")
+		}
+		if m != "b026324c6904b2a9cb4b88d6d61c81d1" {
+			t.Error("Expected md5 sum must not be %v", m)
 		}
 	}
 }
