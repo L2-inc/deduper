@@ -1,4 +1,5 @@
 package main
+
 import "testing"
 
 func TestMain(t *testing.T) {
@@ -23,5 +24,9 @@ func TestMain(t *testing.T) {
 		if m != "b026324c6904b2a9cb4b88d6d61c81d1" {
 			t.Error("Expected md5 sum must not be %v", m)
 		}
+	}
+	a = hardID([]string{"test/a/b", "test/a/d"})
+	if len(a) != 1 {
+		t.Error("Expected only one valid file")
 	}
 }
