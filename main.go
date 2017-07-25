@@ -59,9 +59,9 @@ func hardID(paths []string) map[string][]string {
 	return md5sum
 }
 
-func (t trait) deleteDupes() int {
+func (t trait) confirmDupes() bool {
 	if t.size == 0 || len(t.paths) < 2 {
-		return 0
+		return false
 	}
 	md5sums := hardID(t.paths)
 	uniqueSums := len(md5sums)
@@ -70,14 +70,18 @@ func (t trait) deleteDupes() int {
 		for _, p := range t.paths {
 			fmt.Println("\t", p)
 		}
-		return 0
+		return false
 	}
+	return true
+}
+
+func (t trait) deleteDupes(verbose bool, prefix string) int {
 	toDelete := []string{}
 	for i, p := range t.paths {
-		if *report {
+		if verbose {
 			fmt.Printf(" duplicate %d: %s\n", i, p)
 		}
-		if *deletePrefix != "" && strings.HasPrefix(p, *deletePrefix) {
+		if prefix != "" && strings.HasPrefix(p, prefix) {
 			toDelete = append(toDelete, p)
 		}
 	}
@@ -141,10 +145,12 @@ func main() {
 	compileData()
 	for a, paths := range similarFiles {
 		t := trait{a.size, paths}
-		deleted := t.deleteDupes()
+		if !t.confirmDupes() {
+			continue
+		}
+		deleted := t.deleteDupes(*report, *deletePrefix)
 		totalDupes += deleted
 		wastedSpace += int64(deleted) * a.size
-
 	}
 	reportStats()
 }
