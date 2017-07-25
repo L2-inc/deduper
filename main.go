@@ -10,9 +10,14 @@ import (
 	"strings"
 )
 
-type softID struct {
+type aspect struct {
 	name string
 	size int64
+}
+
+type trait struct {
+	size  int64
+	paths []string
 }
 
 var totalDupes int
@@ -22,7 +27,7 @@ var report *bool
 var allFiles int
 var allDirs int
 var totalSize int64
-var uniqueFiles map[softID][]string
+var similarFiles map[aspect][]string
 
 func validateDirs() {
 	for _, dir := range flag.Args() {
@@ -34,7 +39,7 @@ func validateDirs() {
 }
 
 func hardID(paths []string) map[string][]string {
-	hardID := make(map[string][]string)
+	md5sum := make(map[string][]string)
 	for _, path := range paths {
 		f, err := os.Open(path)
 		defer f.Close()
@@ -49,43 +54,44 @@ func hardID(paths []string) map[string][]string {
 			continue
 		}
 		sum := fmt.Sprintf("%x", h.Sum(nil))
-		hardID[sum] = append(hardID[sum], path)
+		md5sum[sum] = append(md5sum[sum], path)
 	}
-	return hardID
+	return md5sum
 }
 
-func confirmDupes(k softID, files []string) {
-	if k.size == 0 || len(files) < 2 {
-		return
+func (t trait) deleteDupes() int {
+	if t.size == 0 || len(t.paths) < 2 {
+		return 0
 	}
-	for _, paths := range hardID(files) {
-		toDelete := []string{}
-		if 2 > len(paths) {
-			continue
+	md5sums := hardID(t.paths)
+	uniqueSums := len(md5sums)
+	if uniqueSums != 1 {
+		fmt.Printf(" expect exactly 1 md5sum but found %d for", uniqueSums)
+		for _, p := range t.paths {
+			fmt.Println("\t", p)
 		}
-		totalDupes--
-		wastedSpace = wastedSpace - k.size
-		for i, p := range paths {
-			totalDupes++
-			wastedSpace += k.size
-			if *report {
-				fmt.Printf(" duplicate %d: %s\n", i, p)
-			}
-			if *deletePrefix != "" && strings.HasPrefix(p, *deletePrefix) {
-				toDelete = append(toDelete, p)
-			}
+		return 0
+	}
+	toDelete := []string{}
+	for i, p := range t.paths {
+		if *report {
+			fmt.Printf(" duplicate %d: %s\n", i, p)
 		}
-		if len(toDelete) == len(paths) {
-			fmt.Println("delete prefix needs to be more restrictive.  all copies of a file are")
-			for _, p := range toDelete {
-				fmt.Printf("\t%s\n", p)
-			}
-			continue
+		if *deletePrefix != "" && strings.HasPrefix(p, *deletePrefix) {
+			toDelete = append(toDelete, p)
 		}
+	}
+	if len(toDelete) == len(t.paths) {
+		fmt.Println("delete prefix needs to be more restrictive.  all copies of a file are")
+		for _, p := range toDelete {
+			fmt.Printf("\t%s\n", p)
+		}
+	} else {
 		for i, p := range toDelete {
 			fmt.Printf(" deleting copy %d at %s\n", i, p)
 		}
 	}
+	return len(t.paths) - 1
 }
 
 func walker(path string, f os.FileInfo, err error) error {
@@ -97,13 +103,13 @@ func walker(path string, f os.FileInfo, err error) error {
 		allDirs++
 		return nil
 	}
-	s := softID{f.Name(), f.Size()}
+	s := aspect{f.Name(), f.Size()}
 	if s.size == 0 {
 		return nil
 	}
 	totalSize += s.size
 	allFiles++
-	uniqueFiles[s] = append(uniqueFiles[s], path)
+	similarFiles[s] = append(similarFiles[s], path)
 	return nil
 }
 
@@ -117,7 +123,7 @@ func processArgs() {
 }
 
 func compileData() {
-	uniqueFiles = make(map[softID][]string)
+	similarFiles = make(map[aspect][]string)
 	for _, dir := range flag.Args() {
 		filepath.Walk(dir, walker)
 	}
@@ -133,8 +139,12 @@ func main() {
 	validateDirs()
 
 	compileData()
-	for k, v := range uniqueFiles {
-		confirmDupes(k, v)
+	for a, paths := range similarFiles {
+		t := trait{a.size, paths}
+		deleted := t.deleteDupes()
+		totalDupes += deleted
+		wastedSpace += int64(deleted) * a.size
+
 	}
 	reportStats()
 }
