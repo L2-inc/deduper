@@ -103,27 +103,6 @@ func (t trait) deleteDupes(verbose bool, prefix string) int {
 	return len(toDelete)
 }
 
-func walker(path string, f os.FileInfo, err error) error {
-	if f == nil {
-		fmt.Printf("Invalid path %s\n", path)
-		return nil
-	}
-	if f.IsDir() {
-		return nil
-	}
-	if f.Mode()&os.ModeSymlink != 0 {
-		return nil
-	}
-	s := aspect{f.Name(), f.Size()}
-	if s.size == 0 {
-		return nil
-	}
-	totalSize += s.size
-	allFiles++
-	similarFiles[s] = append(similarFiles[s], path)
-	return nil
-}
-
 func processArgs() {
 	deletePrefix = flag.String("delete-prefix", "", "delete dupes that start with this prefix")
 	report = flag.Bool("report", false, "print out report only.  This is on unless 'delete-prefix' flag is specified")
@@ -134,11 +113,31 @@ func processArgs() {
 	}
 }
 
-func compileData() {
-	similarFiles = make(map[aspect][]string)
+func compileData() (size int64, count int, simFiles map[aspect][]string){
+	simFiles = make(map[aspect][]string)
 	for _, dir := range flag.Args() {
-		filepath.Walk(dir, walker)
+		filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+			if f == nil {
+				fmt.Printf("Invalid path %s\n", path)
+				return nil
+			}
+			if f.IsDir() {
+				return nil
+			}
+			if f.Mode()&os.ModeSymlink != 0 {
+				return nil
+			}
+			s := aspect{f.Name(), f.Size()}
+			if s.size == 0 {
+				return nil
+			}
+			size += s.size
+			count++
+			simFiles[s] = append(simFiles[s], path)
+			return nil
+		})
 	}
+	return size, count, simFiles
 }
 
 func reportStats() {
@@ -150,7 +149,7 @@ func main() {
 	processArgs()
 	validateDirs(flag.Args())
 
-	compileData()
+	totalSize, allFiles, similarFiles = compileData()
 	for a, paths := range similarFiles {
 		t := trait{a.size, paths}
 		if !t.confirmDupes(*quiet) {
