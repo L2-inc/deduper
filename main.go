@@ -21,16 +21,15 @@ type trait struct {
 }
 
 var totalDupes int
-var wastedSpace int64
+var spaceSaved int64
 var deletePrefix *string
 var report *bool
 var allFiles int
-var allDirs int
 var totalSize int64
 var similarFiles map[aspect][]string
 
-func validateDirs() {
-	for _, dir := range flag.Args() {
+func validateDirs(dirs []string) {
+	for _, dir := range dirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			fmt.Printf("invalid dir %v", err)
 			os.Exit(2)
@@ -66,9 +65,12 @@ func (t trait) confirmDupes() bool {
 	md5sums := hardID(t.paths)
 	uniqueSums := len(md5sums)
 	if uniqueSums != 1 {
-		fmt.Printf(" expect exactly 1 md5sum but found %d for", uniqueSums)
-		for _, p := range t.paths {
-			fmt.Println("\t", p)
+		fmt.Printf(" expect exactly 1 md5sum but found %d\n", uniqueSums)
+		for s, p := range md5sums {
+			fmt.Printf("\t %s\n", s)
+			for _, path := range p {
+				fmt.Printf("\t\t%s\n", path)
+			}
 		}
 		return false
 	}
@@ -90,12 +92,12 @@ func (t trait) deleteDupes(verbose bool, prefix string) int {
 		for _, p := range toDelete {
 			fmt.Printf("\t%s\n", p)
 		}
-	} else {
-		for i, p := range toDelete {
-			fmt.Printf(" deleting copy %d at %s\n", i, p)
-		}
+		return 0
 	}
-	return len(t.paths) - 1
+	for i, p := range toDelete {
+		fmt.Printf(" deleting copy %d at %s\n", i, p)
+	}
+	return len(toDelete)
 }
 
 func walker(path string, f os.FileInfo, err error) error {
@@ -104,7 +106,9 @@ func walker(path string, f os.FileInfo, err error) error {
 		return nil
 	}
 	if f.IsDir() {
-		allDirs++
+		return nil
+	}
+	if f.Mode()&os.ModeSymlink != 0 {
 		return nil
 	}
 	s := aspect{f.Name(), f.Size()}
@@ -134,13 +138,13 @@ func compileData() {
 }
 
 func reportStats() {
-	fmt.Printf("\nTotal dupes %d.  Total bytes wasted %d\n", totalDupes, wastedSpace)
-	fmt.Printf("\nTotal files %d.  Total bytes %d. Total dirs %d\n", allFiles, totalSize, allDirs)
+	fmt.Printf("\nTotal dupes %d.  Total bytes wasted %d\n", totalDupes, spaceSaved)
+	fmt.Printf("\nTotal files %d.  Total bytes %d\n", allFiles, totalSize)
 }
 
 func main() {
 	processArgs()
-	validateDirs()
+	validateDirs(flag.Args())
 
 	compileData()
 	for a, paths := range similarFiles {
@@ -150,7 +154,7 @@ func main() {
 		}
 		deleted := t.deleteDupes(*report, *deletePrefix)
 		totalDupes += deleted
-		wastedSpace += int64(deleted) * a.size
+		spaceSaved += int64(deleted) * a.size
 	}
 	reportStats()
 }
