@@ -23,7 +23,7 @@ type trait struct {
 var totalDupes int
 var spaceSaved int64
 var deletePrefix *string
-var report *bool
+var report, quiet *bool
 var allFiles int
 var totalSize int64
 var similarFiles map[aspect][]string
@@ -58,13 +58,16 @@ func hardID(paths []string) map[string][]string {
 	return md5sum
 }
 
-func (t trait) confirmDupes() bool {
+func (t trait) confirmDupes(quiet bool) bool {
 	if t.size == 0 || len(t.paths) < 2 {
 		return false
 	}
 	md5sums := hardID(t.paths)
 	uniqueSums := len(md5sums)
 	if uniqueSums != 1 {
+		if quiet {
+			return false
+		}
 		fmt.Printf(" expect exactly 1 md5sum but found %d\n", uniqueSums)
 		for s, p := range md5sums {
 			fmt.Printf("\t %s\n", s)
@@ -124,8 +127,9 @@ func walker(path string, f os.FileInfo, err error) error {
 func processArgs() {
 	deletePrefix = flag.String("delete-prefix", "", "delete dupes that start with this prefix")
 	report = flag.Bool("report", false, "print out report only.  This is on unless 'delete-prefix' flag is specified")
+	quiet = flag.Bool("quiet", false, "minimal output")
 	flag.Parse()
-	if *deletePrefix != "" {
+	if *deletePrefix != "" && !*quiet {
 		*report = true
 	}
 }
@@ -149,7 +153,7 @@ func main() {
 	compileData()
 	for a, paths := range similarFiles {
 		t := trait{a.size, paths}
-		if !t.confirmDupes() {
+		if !t.confirmDupes(*quiet) {
 			continue
 		}
 		deleted := t.deleteDupes(*report, *deletePrefix)
