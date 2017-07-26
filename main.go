@@ -142,7 +142,7 @@ func compileData() {
 }
 
 func reportStats() {
-	fmt.Printf("\nTotal dupes %d.  Total bytes wasted %d\n", totalDupes, spaceSaved)
+	fmt.Printf("\n%d dupe files deleted.  Total bytes saved %d\n", totalDupes, spaceSaved)
 	fmt.Printf("\nTotal files %d.  Total bytes %d\n", allFiles, totalSize)
 }
 
