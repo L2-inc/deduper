@@ -113,9 +113,9 @@ func processArgs() {
 	}
 }
 
-func compileData() (size int64, count int, simFiles map[aspect][]string){
+func compileData(dirs []string) (size int64, count int, simFiles map[aspect][]string) {
 	simFiles = make(map[aspect][]string)
-	for _, dir := range flag.Args() {
+	for _, dir := range dirs {
 		filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 			if f == nil {
 				fmt.Printf("Invalid path %s\n", path)
@@ -147,9 +147,10 @@ func reportStats() {
 
 func main() {
 	processArgs()
-	validateDirs(flag.Args())
+	allDirs := flag.Args()
+	validateDirs(allDirs)
 
-	totalSize, allFiles, similarFiles = compileData()
+	totalSize, allFiles, similarFiles = compileData(allDirs)
 	for a, paths := range similarFiles {
 		t := trait{a.size, paths}
 		if !t.confirmDupes(*quiet) {
