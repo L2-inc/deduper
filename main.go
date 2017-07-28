@@ -70,7 +70,7 @@ func (t trait) confirmDupes(quiet bool) bool {
 	} else if quiet {
 		return false
 	}
-	fmt.Printf(" expect exactly 1 md5sum but found %d with size %d\n", uniqueSums, t.size)
+	fmt.Printf(" expect exactly 1 md5sum but found %d out of %d with size %d bytes\n", uniqueSums, len(t.paths), t.size)
 	for s, p := range md5sums {
 		fmt.Printf("\t %s\n", s)
 		for _, path := range p {
