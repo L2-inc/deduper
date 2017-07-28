@@ -37,7 +37,7 @@ func TestConfirmDupes(t *testing.T) {
 		t.Error("Dupes found when none expected for trivial trait")
 	}
 
-	s = trait{0, []string{"a",	 "b"}}
+	s = trait{0, []string{"a", "b"}}
 	if s.confirmDupes(true) {
 		t.Error("Dupes found for 0 size files")
 	}
@@ -74,6 +74,16 @@ func TestCompileData(t *testing.T) {
 
 	if len(data) != 4 {
 		t.Errorf("expected data length is %d but actual value is %d", 4, len(data))
+	}
+}
+
+func TestValidateDirs(t *testing.T) {
+	if validateDirs([]string{"nodir"}) {
+		t.Error("validate non-existing dir")
+	}
+
+	if !validateDirs([]string{".", "test"}) {
+		t.Error("doest not validate good dirs")
 	}
 }
 

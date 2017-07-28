@@ -28,13 +28,14 @@ var allFiles int
 var totalSize int64
 var similarFiles map[aspect][]string
 
-func validateDirs(dirs []string) {
+func validateDirs(dirs []string) bool {
 	for _, dir := range dirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			fmt.Printf("invalid dir %v", err)
-			os.Exit(2)
+			return false
 		}
 	}
+	return true
 }
 
 func hardID(paths []string) map[string][]string {
@@ -148,7 +149,9 @@ func reportStats() {
 func main() {
 	processArgs()
 	allDirs := flag.Args()
-	validateDirs(allDirs)
+	if !validateDirs(allDirs) {
+		os.Exit(2)
+	}
 
 	totalSize, allFiles, similarFiles = compileData(allDirs)
 	for a, paths := range similarFiles {
