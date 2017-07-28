@@ -81,7 +81,7 @@ func (t trait) confirmDupes(quiet bool) bool {
 	return true
 }
 
-func (t trait) deleteDupes(verbose bool, prefix string) int {
+func (t trait) purge(verbose bool, prefix string, rm func(string) error) int {
 	toDelete := []string{}
 	for i, p := range t.paths {
 		if verbose {
@@ -100,6 +100,7 @@ func (t trait) deleteDupes(verbose bool, prefix string) int {
 	}
 	for i, p := range toDelete {
 		fmt.Printf(" deleting copy %d at %s\n", i, p)
+		rm(p)
 	}
 	return len(toDelete)
 }
@@ -122,14 +123,8 @@ func compileData(dirs []string) (size int64, count int, simFiles map[aspect][]st
 				fmt.Printf("Invalid path %s\n", path)
 				return nil
 			}
-			if f.IsDir() {
-				return nil
-			}
-			if f.Mode()&os.ModeSymlink != 0 {
-				return nil
-			}
 			s := aspect{f.Name(), f.Size()}
-			if s.size == 0 {
+			if f.IsDir() || f.Mode()&os.ModeSymlink != 0 || s.size == 0 {
 				return nil
 			}
 			size += s.size
@@ -159,7 +154,7 @@ func main() {
 		if !t.confirmDupes(*quiet) {
 			continue
 		}
-		deleted := t.deleteDupes(*report, *deletePrefix)
+		deleted := t.purge(*report, *deletePrefix, os.Remove)
 		totalDupes += deleted
 		spaceSaved += int64(deleted) * a.size
 	}

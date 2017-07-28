@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestHardID(t *testing.T) {
 	a := hardID([]string{"test/e", "test/d"})
@@ -87,13 +90,22 @@ func TestValidateDirs(t *testing.T) {
 	}
 }
 
+func rm(p string) error {
+	fmt.Println("pretending to delete during the test", p)
+	return nil
+}
+
 func TestDeleteDupes(t *testing.T) {
 	s := trait{2, []string{"test/c", "test/a/c"}}
-	if s.deleteDupes(false, "") != 0 {
+	if s.purge(false, "", rm) != 0 {
 		t.Error("something deleted when prefix option is empty with verbose flag off")
 	}
 
-	if s.deleteDupes(true, "") != 0 {
+	if s.purge(true, "", rm) != 0 {
 		t.Error("something deleted when prefix option is empty with verbose flag true")
+	}
+
+	if s.purge(true, "test/a", rm) == 0 {
+		t.Error("nothing is deleted when one file is expected to be gone")
 	}
 }
