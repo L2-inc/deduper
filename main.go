@@ -99,7 +99,9 @@ func (t trait) purge(verbose bool, prefix string, rm func(string) error) int {
 	}
 	for i, p := range toDelete {
 		fmt.Printf(" deleting copy %d at %s\n", i, p)
-		rm(p)
+		if err := rm(p); err != nil {
+			panic(err)
+		}
 	}
 	return len(toDelete)
 }

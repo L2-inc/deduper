@@ -91,11 +91,11 @@ func TestValidateDirs(t *testing.T) {
 }
 
 func rm(p string) error {
-	fmt.Println("pretending to delete during the test", p)
+	fmt.Printf("pretending to delete during the test '%s'\n", p)
 	return nil
 }
 
-func TestDeleteDupes(t *testing.T) {
+func TestPurge(t *testing.T) {
 	s := trait{2, []string{"test/c", "test/a/c"}}
 	if s.purge(false, "", rm) != 0 {
 		t.Error("something deleted when prefix option is empty with verbose flag off")
