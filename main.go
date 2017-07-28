@@ -65,20 +65,19 @@ func (t trait) confirmDupes(quiet bool) bool {
 	}
 	md5sums := hardID(t.paths)
 	uniqueSums := len(md5sums)
-	if uniqueSums != 1 {
-		if quiet {
-			return false
-		}
-		fmt.Printf(" expect exactly 1 md5sum but found %d with size %d\n", uniqueSums, t.size)
-		for s, p := range md5sums {
-			fmt.Printf("\t %s\n", s)
-			for _, path := range p {
-				fmt.Printf("\t\t%s\n", path)
-			}
-		}
+	if uniqueSums == 1 {
+		return true
+	} else if quiet {
 		return false
 	}
-	return true
+	fmt.Printf(" expect exactly 1 md5sum but found %d with size %d\n", uniqueSums, t.size)
+	for s, p := range md5sums {
+		fmt.Printf("\t %s\n", s)
+		for _, path := range p {
+			fmt.Printf("\t\t%s\n", path)
+		}
+	}
+	return false
 }
 
 func (t trait) purge(verbose bool, prefix string, rm func(string) error) int {
