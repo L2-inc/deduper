@@ -104,26 +104,38 @@ type fakeDeletePath struct {
 
 func (f *fakeDeletePath) rm(p string) error {
 	fmt.Printf("pretending to delete during the test '%s'\n", p)
+	f.count++
 	return nil
 }
 
 func TestPurge(t *testing.T) {
 	s := trait{2, []string{"test/c", "test/a/c"}}
 	f := fakeDeletePath{0}
+	type testResult struct {
+		deleted       int
+		actualDeleted int
+		err           string
+	}
 	cases := []struct {
 		prefix  string
-		deleted int
-		err     string
+		results []testResult
 	}{
-		{"", 0, "something deleted when prefix option is empty"},
-		{"test/a", 1, "exactly one file is expected to be deleted"},
-	}
+		{"", []testResult{
+			{0, 0, "something deleted when prefix option is empty"},
+			{0, 0, "something deleted when prefix option is empty"}}},
+		{"test/a", []testResult{
+			{1, 0, "nothing must be deleted for valid prefix"},
+			{1, 1, "exactly one file is expected to be deleted"}}}}
 	for _, c := range cases {
-		for _, q := range [2]bool{true, false} {
+		for i, q := range [2]bool{true, false} {
 			deleted := s.purge(q, c.prefix, f.rm)
-			if deleted != c.deleted {
-				t.Errorf(c.err+" with report flag %t"+": deleted %d", q, deleted)
+			if deleted != c.results[i].deleted {
+				t.Errorf(c.results[i].err+" with report flag %t"+": deleted %d", q, deleted)
 			}
+			if c.results[i].actualDeleted != f.count {
+				t.Errorf("fake rm reports different count %d from code: %d", f.count, deleted)
+			}
+			f.count = 0
 		}
 	}
 }
