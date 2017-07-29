@@ -108,7 +108,7 @@ func TestPurge(t *testing.T) {
 		t.Error("something deleted when prefix option is empty with verbose flag true")
 	}
 
-	if s.purge(true, "test/a", rm) == 0 {
+	if s.purge(true, "test/a", rm) != 1 {
 		t.Error("nothing is deleted when one file is expected to be gone")
 	}
 }
