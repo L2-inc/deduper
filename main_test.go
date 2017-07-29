@@ -6,31 +6,33 @@ import (
 )
 
 func TestHardID(t *testing.T) {
-	a := hardID([]string{"test/e", "test/d"})
-	if len(a) != 2 {
-		t.Error("Expected no dupes")
-	}
-	for _, pathList := range a {
-		if len(pathList) != 1 {
-			t.Error("Expected only one file in the list")
-		}
+	cases := []struct {
+		paths []string
+		sums  int
+		dupes int
+		md5   string
+	}{
+		{[]string{"test/e", "test/d"}, 2, 0, ""},
+		{[]string{"test/c", "test/d"}, 1, 2, "b026324c6904b2a9cb4b88d6d61c81d1"},
+		{[]string{"test/a/b", "test/a/f"}, 1, 1, "7e2fe280d0a014cf5035bd8dddf59410"},
 	}
 
-	a = hardID([]string{"test/c", "test/d"})
-	if len(a) != 1 {
-		t.Error("Expected two files to have the same fingerprint")
-	}
-	for m, pathList := range a {
-		if len(pathList) != 2 {
-			t.Error("Expected two duplicate files")
+	for _, s := range cases {
+		a := hardID(s.paths)
+		if len(a) != s.sums {
+			t.Errorf("Expected only %d md5s.  Found %d", s.sums, len(a))
 		}
-		if m != "b026324c6904b2a9cb4b88d6d61c81d1" {
-			t.Error("Expected md5 sum must not be %v", m)
+		if s.sums != 1 {
+			continue
 		}
-	}
-	a = hardID([]string{"test/a/b", "test/a/d"})
-	if len(a) != 1 {
-		t.Error("Expected only one valid file")
+		for sum, paths := range a {
+			if len(paths) != s.dupes {
+				t.Errorf("Expected %d paths but got %d", s.dupes, len(paths))
+			}
+			if sum != s.md5 {
+				t.Errorf("bad sum %s expected %s for %v", sum, s.md5, paths)
+			}
+		}
 	}
 }
 
@@ -67,16 +69,17 @@ func TestConfirmDupes(t *testing.T) {
 
 func TestCompileData(t *testing.T) {
 	s, c, data := compileData([]string{"test"})
-	if s != 15 {
-		t.Errorf("total size is expected to be %d but got %d", 15, s)
+	total, count, dataLength := int64(18), 7, 5
+	if s != total {
+		t.Errorf("total size is expected to be %d but got %d", total, s)
 	}
 
-	if c != 6 {
-		t.Errorf("count of files is expected to be %d but instead %d", 6, c)
+	if c != count {
+		t.Errorf("count of files is expected to be %d but instead %d",count, c)
 	}
 
-	if len(data) != 4 {
-		t.Errorf("expected data length is %d but actual value is %d", 4, len(data))
+	if len(data) != dataLength {
+		t.Errorf("expected data length is %d but actual value is %d", dataLength, len(data))
 	}
 }
 
