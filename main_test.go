@@ -41,33 +41,34 @@ func TestHardID(t *testing.T) {
 }
 
 func TestConfirmDupes(t *testing.T) {
-	s := trait{0, []string{}}
-	if s.confirmDupes(true) {
-		t.Error("Dupes found when none expected for trivial trait")
+	cases := []struct {
+		t       trait
+		errCase bool
+		err     string
+	}{
+		{trait{0, []string{}},
+			true,
+			"Dupes found when none expected with empty list"},
+		{trait{0, []string{"a", "b"}},
+			true,
+			"Dupes found for zero size files"},
+		{trait{9, []string{"test/c"}},
+			true,
+			"Dupes reported when there is only one copy"},
+		{trait{2, []string{"test/c", "test/a/c"}},
+			false,
+			"Dupers are not reported"},
+		{trait{3, []string{"test/e", "test/a/e"}},
+			true,
+			"Dupes are unexpectedly reported"},
 	}
 
-	s = trait{0, []string{"a", "b"}}
-	if s.confirmDupes(true) {
-		t.Error("Dupes found for 0 size files")
-	}
-
-	s = trait{9, []string{"/root"}}
-	if s.confirmDupes(true) {
-		t.Error("Dupes report when there is only one copy")
-	}
-
-	s = trait{2, []string{"test/c", "test/a/c"}}
-	if !s.confirmDupes(true) {
-		t.Error("Dupes are not reported")
-	}
-
-	s = trait{3, []string{"test/e", "test/a/e"}}
-	if s.confirmDupes(false) {
-		t.Error("Dupes are unexpectedly reported mith quiet setting off")
-	}
-
-	if s.confirmDupes(true) {
-		t.Error("Dupes are unexpectedly reported with quiet setting")
+	for _, c := range cases {
+		for _, q := range [2]bool{true, false} {
+			if c.errCase == c.t.confirmDupes(q) {
+				t.Errorf(c.err+" with quiet setting %t\n", q)
+			}
+		}
 	}
 }
 
