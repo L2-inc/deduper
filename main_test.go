@@ -75,7 +75,7 @@ func TestCompileData(t *testing.T) {
 	}
 
 	if c != count {
-		t.Errorf("count of files is expected to be %d but instead %d",count, c)
+		t.Errorf("count of files is expected to be %d but instead %d", count, c)
 	}
 
 	if len(data) != dataLength {
