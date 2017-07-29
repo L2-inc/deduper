@@ -72,6 +72,25 @@ func TestConfirmDupes(t *testing.T) {
 	}
 }
 
+func TestDoWork(t *testing.T) {
+	actualCount, actualSize, actualDupes, actualSaved := doWork(true, true, "test/a", []string{"test"})
+	count, size, dupes, saved := 7, int64(18), 1, int64(2)
+	if dupes != actualDupes {
+		t.Errorf("total dupes expected %d got %d", dupes, actualDupes)
+	}
+
+	if count != actualCount {
+		t.Errorf("total count expected %d got %d", count, actualCount)
+	}
+
+	if size != actualSize {
+		t.Errorf("size expected %d got %d", size, actualSize)
+	}
+	if saved != actualSaved {
+		t.Errorf("saved expected %d bytes got %d", saved, actualSaved)
+	}
+}
+
 func TestCompileData(t *testing.T) {
 	s, c, data := compileData([]string{"test"})
 	total, count, dataLength := int64(18), 7, 5

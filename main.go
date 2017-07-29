@@ -138,6 +138,20 @@ func reportStats(all int, size int64, dupes int, saved int64) {
 	fmt.Printf("\nTotal files %d.  Total bytes %d\n", all, size)
 }
 
+func doWork(q bool, r bool, p string, dirs []string) (allFiles int, totalSize int64, totalDupes int, spaceSaved int64) {
+	totalSize, allFiles, similarFiles := compileData(dirs)
+	for a, paths := range similarFiles {
+		t := trait{a.size, paths}
+		if !t.confirmDupes(q) {
+			continue
+		}
+		deleted := t.purge(r, p, os.Remove)
+		totalDupes += deleted
+		spaceSaved += int64(deleted) * a.size
+	}
+	return allFiles, totalSize, totalDupes, spaceSaved
+}
+
 func main() {
 	quiet, report, prefix := processArgs()
 	allDirs := flag.Args()
@@ -145,17 +159,5 @@ func main() {
 		os.Exit(2)
 	}
 
-	totalSize, allFiles, similarFiles := compileData(allDirs)
-	var totalDupes int
-	var spaceSaved int64
-	for a, paths := range similarFiles {
-		t := trait{a.size, paths}
-		if !t.confirmDupes(quiet) {
-			continue
-		}
-		deleted := t.purge(report, prefix, os.Remove)
-		totalDupes += deleted
-		spaceSaved += int64(deleted) * a.size
-	}
-	reportStats(allFiles, totalSize, totalDupes, spaceSaved)
+	reportStats(doWork(quiet, report, prefix, allDirs))
 }
