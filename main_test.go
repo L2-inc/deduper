@@ -98,22 +98,32 @@ func TestValidateDirs(t *testing.T) {
 	}
 }
 
-func rm(p string) error {
+type fakeDeletePath struct {
+	count int
+}
+
+func (f *fakeDeletePath) rm(p string) error {
 	fmt.Printf("pretending to delete during the test '%s'\n", p)
 	return nil
 }
 
 func TestPurge(t *testing.T) {
 	s := trait{2, []string{"test/c", "test/a/c"}}
-	if s.purge(false, "", rm) != 0 {
-		t.Error("something deleted when prefix option is empty with verbose flag off")
+	f := fakeDeletePath{0}
+	cases := []struct {
+		prefix  string
+		deleted int
+		err     string
+	}{
+		{"", 0, "something deleted when prefix option is empty"},
+		{"test/a", 1, "exactly one file is expected to be deleted"},
 	}
-
-	if s.purge(true, "", rm) != 0 {
-		t.Error("something deleted when prefix option is empty with verbose flag true")
-	}
-
-	if s.purge(true, "test/a", rm) != 1 {
-		t.Error("nothing is deleted when one file is expected to be gone")
+	for _, c := range cases {
+		for _, q := range [2]bool{true, false} {
+			deleted := s.purge(q, c.prefix, f.rm)
+			if deleted != c.deleted {
+				t.Errorf(c.err+" with report flag %t"+": deleted %d", q, deleted)
+			}
+		}
 	}
 }
