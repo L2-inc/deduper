@@ -2,36 +2,40 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
 func TestHardID(t *testing.T) {
 	cases := []struct {
-		paths []string
-		sums  int
-		dupes int
-		md5   string
+		paths     []string
+		errString string
+		md5s      map[string][]string
 	}{
-		{[]string{"test/e", "test/d"}, 2, 0, ""},
-		{[]string{"test/c", "test/d"}, 1, 2, "b026324c6904b2a9cb4b88d6d61c81d1"},
-		{[]string{"test/a/b", "test/a/f"}, 1, 1, "7e2fe280d0a014cf5035bd8dddf59410"},
+		{[]string{"test/e", "test/d"},
+			"Case: no dupes with two valid files: expected %v got %v",
+			map[string][]string{
+				"2737b49252e2a4c0fe4c342e92b13285": []string{"test/e"},
+				"b026324c6904b2a9cb4b88d6d61c81d1": []string{"test/d"},
+			},
+		},
+		{[]string{"test/c", "test/d"},
+			"Case: two good files with same content: expected %v got %v",
+			map[string][]string{
+				"b026324c6904b2a9cb4b88d6d61c81d1": []string{"test/c", "test/d"},
+			},
+		},
+		{[]string{"test/a/b", "test/a/f"},
+			"Case: only one valid file: expected %v got %v",
+			map[string][]string{
+				"7e2fe280d0a014cf5035bd8dddf59410": []string{"test/a/f"},
+			},
+		},
 	}
-
 	for _, s := range cases {
-		a := hardID(s.paths)
-		if len(a) != s.sums {
-			t.Errorf("Expected only %d md5s.  Found %d", s.sums, len(a))
-		}
-		if s.sums != 1 {
-			continue
-		}
-		for sum, paths := range a {
-			if len(paths) != s.dupes {
-				t.Errorf("Expected %d paths but got %d", s.dupes, len(paths))
-			}
-			if sum != s.md5 {
-				t.Errorf("bad sum %s expected %s for %v", sum, s.md5, paths)
-			}
+		h := hardID(s.paths)
+		if !reflect.DeepEqual(s.md5s, h) {
+			t.Errorf(s.errString, s.md5s, h)
 		}
 	}
 }
