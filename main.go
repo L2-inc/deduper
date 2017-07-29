@@ -20,14 +20,6 @@ type trait struct {
 	paths []string
 }
 
-var totalDupes int
-var spaceSaved int64
-var deletePrefix *string
-var report, quiet *bool
-var allFiles int
-var totalSize int64
-var similarFiles map[aspect][]string
-
 func validateDirs(dirs []string) bool {
 	for _, dir := range dirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -80,10 +72,10 @@ func (t trait) confirmDupes(quiet bool) bool {
 	return false
 }
 
-func (t trait) purge(verbose bool, prefix string, rm func(string) error) int {
+func (t trait) purge(reportOnly bool, prefix string, rm func(string) error) int {
 	toDelete := []string{}
 	for i, p := range t.paths {
-		if verbose {
+		if reportOnly {
 			fmt.Printf(" duplicate %d: %s\n", i, p)
 		}
 		if prefix != "" && strings.HasPrefix(p, prefix) {
@@ -99,6 +91,9 @@ func (t trait) purge(verbose bool, prefix string, rm func(string) error) int {
 	}
 	for i, p := range toDelete {
 		fmt.Printf(" deleting copy %d at %s\n", i, p)
+		if reportOnly {
+			continue
+		}
 		if err := rm(p); err != nil {
 			panic(err)
 		}
@@ -106,14 +101,15 @@ func (t trait) purge(verbose bool, prefix string, rm func(string) error) int {
 	return len(toDelete)
 }
 
-func processArgs() {
-	deletePrefix = flag.String("delete-prefix", "", "delete dupes that start with this prefix")
-	report = flag.Bool("report", false, "print out report only.  This is on unless 'delete-prefix' flag is specified")
-	quiet = flag.Bool("quiet", false, "minimal output")
+func processArgs() (bool, bool, string) {
+	deletePrefix := flag.String("delete-prefix", "", "delete dupes that start with this prefix")
+	report := flag.Bool("report", false, "print out report only.  This is on unless 'delete-prefix' flag is specified")
+	quiet := flag.Bool("quiet", false, "minimal output")
 	flag.Parse()
 	if *deletePrefix != "" && !*quiet {
 		*report = true
 	}
+	return *quiet, *report, *deletePrefix
 }
 
 func compileData(dirs []string) (size int64, count int, simFiles map[aspect][]string) {
@@ -137,27 +133,29 @@ func compileData(dirs []string) (size int64, count int, simFiles map[aspect][]st
 	return size, count, simFiles
 }
 
-func reportStats() {
-	fmt.Printf("\n%d dupe files deleted.  Total bytes saved %d\n", totalDupes, spaceSaved)
-	fmt.Printf("\nTotal files %d.  Total bytes %d\n", allFiles, totalSize)
+func reportStats(all int, size int64, dupes int, saved int64) {
+	fmt.Printf("\n%d dupe files deleted.  Total bytes saved %d\n", dupes, saved)
+	fmt.Printf("\nTotal files %d.  Total bytes %d\n", all, size)
 }
 
 func main() {
-	processArgs()
+	quiet, report, prefix := processArgs()
 	allDirs := flag.Args()
 	if !validateDirs(allDirs) {
 		os.Exit(2)
 	}
 
-	totalSize, allFiles, similarFiles = compileData(allDirs)
+	totalSize, allFiles, similarFiles := compileData(allDirs)
+	var totalDupes int
+	var spaceSaved int64
 	for a, paths := range similarFiles {
 		t := trait{a.size, paths}
-		if !t.confirmDupes(*quiet) {
+		if !t.confirmDupes(quiet) {
 			continue
 		}
-		deleted := t.purge(*report, *deletePrefix, os.Remove)
+		deleted := t.purge(report, prefix, os.Remove)
 		totalDupes += deleted
 		spaceSaved += int64(deleted) * a.size
 	}
-	reportStats()
+	reportStats(allFiles, totalSize, totalDupes, spaceSaved)
 }
