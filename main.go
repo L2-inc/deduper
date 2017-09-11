@@ -90,7 +90,7 @@ func (t trait) purge(reportOnly bool, prefix string, rm func(string) error) int 
 		return 0
 	}
 	for i, p := range toDelete {
-		fmt.Printf(" deleting copy %d at %s\n", i, p)
+		fmt.Printf(" deleting copy %d at '%s'\n", i, p)
 		if reportOnly {
 			continue
 		}
@@ -104,7 +104,7 @@ func (t trait) purge(reportOnly bool, prefix string, rm func(string) error) int 
 func processArgs() (bool, bool, string) {
 	deletePrefix := flag.String("delete-prefix", "", "delete dupes that start with this prefix")
 	report := flag.Bool("report", false, "print out report only.  This is on if 'delete-prefix' flag is omitted.  If on, nothing is deleted.")
-	quiet := flag.Bool("quiet", false, "minimal output")
+	quiet := flag.Bool("quiet", false, "minimal output; dry-run without this")
 	flag.Parse()
 	if *deletePrefix != "" && !*quiet {
 		*report = true
@@ -159,6 +159,7 @@ func main() {
 		os.Exit(2)
 	}
 	if 0 == len(allDirs) {
+		fmt.Printf("Usage: ./deduper <options> <folder>\n\n")
 		flag.Usage()
 		os.Exit(0)
 	}
