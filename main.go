@@ -51,7 +51,7 @@ func hardID(paths []string) map[string][]string {
 	return md5sum
 }
 
-func (t trait) confirmDupes(quiet bool) bool {
+func (t trait) confirmDupes(forReal bool) bool {
 	if t.size == 0 || len(t.paths) < 2 {
 		return false
 	}
@@ -59,7 +59,7 @@ func (t trait) confirmDupes(quiet bool) bool {
 	uniqueSums := len(md5sums)
 	if uniqueSums == 1 {
 		return true
-	} else if quiet {
+	} else if forReal {
 		return false
 	}
 	fmt.Printf(" expect exactly 1 md5sum but found %d out of %d with size %d bytes\n", uniqueSums, len(t.paths), t.size)
@@ -104,12 +104,12 @@ func (t trait) purge(reportOnly bool, prefix string, rm func(string) error) int 
 func processArgs() (bool, bool, string) {
 	deletePrefix := flag.String("delete-prefix", "", "delete dupes that start with this prefix")
 	report := flag.Bool("report", false, "print out report only.  This is on if 'delete-prefix' flag is omitted.  If on, nothing is deleted.")
-	quiet := flag.Bool("quiet", false, "minimal output; dry-run without this")
+	forReal := flag.Bool("for-real", false, "minimal output; dry-run without this")
 	flag.Parse()
-	if *deletePrefix != "" && !*quiet {
+	if *deletePrefix != "" && !*forReal {
 		*report = true
 	}
-	return *quiet, *report, *deletePrefix
+	return *forReal, *report, *deletePrefix
 }
 
 func compileData(dirs []string) (size int64, count int, simFiles map[aspect][]string) {
@@ -153,7 +153,7 @@ func doWork(q bool, r bool, p string, dirs []string) (allFiles int, totalSize in
 }
 
 func main() {
-	quiet, report, prefix := processArgs()
+	forReal, report, prefix := processArgs()
 	allDirs := flag.Args()
 	if !validateDirs(allDirs) {
 		os.Exit(2)
@@ -164,5 +164,5 @@ func main() {
 		os.Exit(0)
 	}
 
-	reportStats(doWork(quiet, report, prefix, allDirs))
+	reportStats(doWork(forReal, report, prefix, allDirs))
 }
