@@ -22,6 +22,14 @@ type trait struct {
 	paths []string
 }
 
+type cmdOpt struct {
+	forReal        bool
+	report         bool
+	deletePrefix   string
+	ignoreSuffixes string
+	dirs           []string
+}
+
 func validateDirs(dirs []string) bool {
 	for _, dir := range dirs {
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -103,24 +111,32 @@ func (t trait) purge(reportOnly bool, prefix string, rm func(string) error) int 
 	return len(toDelete)
 }
 
-func processArgs() (bool, bool, string) {
+func processArgs() cmdOpt {
 	deletePrefix := flag.String("delete-prefix", "", "delete dupes that start with this prefix")
 	report := flag.Bool("report", false, "print out report only.  This is on if 'delete-prefix' flag is omitted.  If on, nothing is deleted.")
 	forReal := flag.Bool("for-real", false, "minimal output; dry-run without this")
+	ignoreSuffixes := flag.String("ignore-suffixes", "", "ignore all files with these comma separated suffixes")
 	flag.Parse()
 	if *deletePrefix != "" && !*forReal {
 		*report = true
 	}
-	return *forReal, *report, *deletePrefix
+	work := flag.Args()
+	return cmdOpt{*forReal, *report, *deletePrefix, *ignoreSuffixes, work}
 }
 
-func compileData(dirs []string) (size int64, count int, simFiles map[aspect][]string) {
+func (c cmdOpt) compileData() (size int64, count int, simFiles map[aspect][]string) {
 	simFiles = make(map[aspect][]string)
-	for _, dir := range dirs {
+	suffixes := strings.Split(c.ignoreSuffixes, ",")
+	for _, dir := range c.dirs {
 		filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 			if f == nil {
 				fmt.Printf("Invalid path %s\n", path)
 				return nil
+			}
+			for _, suffix := range suffixes {
+				if strings.HasSuffix(path, suffix) {
+					return nil
+				}
 			}
 			s := aspect{f.Name(), f.Size()}
 			if f.IsDir() || f.Mode()&os.ModeSymlink != 0 || s.size == 0 {
@@ -141,14 +157,14 @@ func reportStats(all int, size int64, dupes int, saved int64) {
 	fmt.Printf("\nTotal files %d.  Total size %s\n", all, humanize.Bytes(uint64(size)))
 }
 
-func doWork(q bool, r bool, p string, dirs []string) (allFiles int, totalSize int64, totalDupes int, spaceSaved int64) {
-	totalSize, allFiles, similarFiles := compileData(dirs)
+func (c cmdOpt) doWork() (allFiles int, totalSize int64, totalDupes int, spaceSaved int64) {
+	totalSize, allFiles, similarFiles := c.compileData()
 	for a, paths := range similarFiles {
 		t := trait{a.size, paths}
-		if !t.confirmDupes(q) {
+		if !t.confirmDupes(c.forReal) {
 			continue
 		}
-		deleted := t.purge(r, p, os.Remove)
+		deleted := t.purge(c.report, c.deletePrefix, os.Remove)
 		totalDupes += deleted
 		spaceSaved += int64(deleted) * a.size
 	}
@@ -156,16 +172,15 @@ func doWork(q bool, r bool, p string, dirs []string) (allFiles int, totalSize in
 }
 
 func main() {
-	forReal, report, prefix := processArgs()
-	allDirs := flag.Args()
-	if !validateDirs(allDirs) {
+	options := processArgs()
+	if !validateDirs(options.dirs) {
 		os.Exit(2)
 	}
-	if 0 == len(allDirs) {
+	if 0 == len(options.dirs) {
 		fmt.Printf("Usage: ./deduper <options> <folder>\n\n")
 		flag.Usage()
 		os.Exit(0)
 	}
 
-	reportStats(doWork(forReal, report, prefix, allDirs))
+	reportStats(options.doWork())
 }

@@ -73,7 +73,8 @@ func TestConfirmDupes(t *testing.T) {
 }
 
 func TestDoWork(t *testing.T) {
-	actualCount, actualSize, actualDupes, actualSaved := doWork(true, true, "test/a", []string{"test"})
+	opt := cmdOpt{true, true, "test/a", ".csv,.gif", []string{"test"}}
+	actualCount, actualSize, actualDupes, actualSaved := opt.doWork()
 	count, size, dupes, saved := 7, int64(18), 1, int64(2)
 	if dupes != actualDupes {
 		t.Errorf("total dupes expected %d got %d", dupes, actualDupes)
@@ -92,18 +93,29 @@ func TestDoWork(t *testing.T) {
 }
 
 func TestCompileData(t *testing.T) {
-	s, c, data := compileData([]string{"test"})
-	total, count, dataLength := int64(18), 7, 5
-	if s != total {
-		t.Errorf("total size is expected to be %d but got %d", total, s)
-	}
+	cases := []struct {
+		opt   cmdOpt
+		total int64
+		count int
+		size  int
+	}{{cmdOpt{ignoreSuffixes: ".csv,.gif", dirs: []string{"test"}}, int64(18), 7, 5},
+		{cmdOpt{ignoreSuffixes: ".csv", dirs: []string{"test"}}, int64(20), 8, 6},
+		{cmdOpt{ignoreSuffixes: ".no_such_suffix", dirs: []string{"test"}}, int64(23), 9, 7},
+		{cmdOpt{ignoreSuffixes: ".gif", dirs: []string{"test"}}, int64(21), 8, 6}}
 
-	if c != count {
-		t.Errorf("count of files is expected to be %d but instead %d", count, c)
-	}
+	for _, _case := range cases {
+		s, c, data := _case.opt.compileData()
+		if s != _case.total {
+			t.Errorf("total size is expected to be %d but got %d", _case.total, s)
+		}
 
-	if len(data) != dataLength {
-		t.Errorf("expected data length is %d but actual value is %d", dataLength, len(data))
+		if c != _case.count {
+			t.Errorf("count of files is expected to be %d but instead %d", _case.count, c)
+		}
+
+		if len(data) != _case.size {
+			t.Errorf("expected data length is %d but actual value is %d", _case.size, len(data))
+		}
 	}
 }
 
