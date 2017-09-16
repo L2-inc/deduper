@@ -136,9 +136,9 @@ func compileData(dirs []string) (size int64, count int, simFiles map[aspect][]st
 }
 
 func reportStats(all int, size int64, dupes int, saved int64) {
-	fmt.Printf("\n%d dupe files deleted.  Total bytes saved %s\n", dupes,
+	fmt.Printf("\n%d dupe files deleted.  Total saved %s\n", dupes,
 		humanize.Bytes(uint64(saved)))
-	fmt.Printf("\nTotal files %d.  Total bytes %d\n", all, humanize.Bytes(uint64(size)))
+	fmt.Printf("\nTotal files %d.  Total size %s\n", all, humanize.Bytes(uint64(size)))
 }
 
 func doWork(q bool, r bool, p string, dirs []string) (allFiles int, totalSize int64, totalDupes int, spaceSaved int64) {
