@@ -1,5 +1,11 @@
 # Deduper: deduplication tool
 
+**The problem**: one might make clones of important folders to back up on multiple devices.  Over
+time, the multiple copies of files need to be deduplicated such as when one needs to refactor
+and streamline the existing digital infrastructure be it your personal property or something more
+elaborate.
+
+
 *deduper* searches a list of folders for duplicate files and selectively deletes the duplicates.
 
 ```
@@ -20,11 +26,6 @@ with prefix supplied.  See below for more details on the algorithm.
 ```
 deduper -for-real -delete-prefix 'some/where/duplicate/trip to asia/2011' /mnt/usb-disk
 ```
-
-The problem: one might make clones of important folders to back up on multiple devices.  Over
-time, the multiple copies of files need to be deduplicated such as when one needs to refactor
-and streamline the existing digital infrastructure be it your personal property or something more
-elaborate.
 
 # Algorithm
 
