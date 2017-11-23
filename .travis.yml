@@ -3,6 +3,6 @@ language: go
 install:
   - go get github.com/dustin/go-humanize
   - make
-
+  - ./travis-education $TRAVIS_EDUCATION
 script:
   - make -B test
